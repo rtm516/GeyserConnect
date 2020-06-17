@@ -1,4 +1,4 @@
-# GeyserConnect
+# GeyserConnect1
 
 [![forthebadge made-with-java](https://ForTheBadge.com/images/badges/made-with-java.svg)](https://java.com/)
 
