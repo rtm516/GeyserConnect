@@ -26,14 +26,10 @@
 package org.geysermc.connect;
 
 import com.nukkitx.protocol.bedrock.*;
-import com.nukkitx.protocol.bedrock.v408.Bedrock_v408;
 import lombok.Getter;
 import lombok.Setter;
-import org.geysermc.connect.storage.DisabledStorageManager;
 import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.utils.FileUtils;
-import org.geysermc.connect.proxy.GeyserProxyBootstrap;
-import org.geysermc.connect.storage.AbstractStorageManager;
 import org.geysermc.connect.utils.Logger;
 import org.geysermc.connect.utils.Player;
 
@@ -69,13 +65,7 @@ public class MasterServer {
     private final Map<String, Player> players = new HashMap<>();
 
     @Getter
-    private GeyserProxyBootstrap geyserProxy;
-
-    @Getter
     private GeyserConnectConfig geyserConnectConfig;
-
-    @Getter
-    private AbstractStorageManager storageManager;
 
     @Setter
     @Getter
@@ -104,21 +94,6 @@ public class MasterServer {
         timer = new Timer();
         TimerTask task = new TimerTask() { public void run() { } };
         timer.scheduleAtFixedRate(task, 0L, 1000L);
-
-        if (!geyserConnectConfig.getCustomServers().isEnabled()) {
-            // Force the storage manager if we have it disabled
-            storageManager = new DisabledStorageManager();
-            logger.info("Disabled custom player servers");
-        } else {
-            try {
-                storageManager = geyserConnectConfig.getCustomServers().getStorageType().getStorageManager().newInstance();
-            } catch (Exception e) {
-                logger.severe("Invalid storage manager class!", e);
-                return;
-            }
-        }
-
-        storageManager.setupStorage();
 
         start(geyserConnectConfig.getPort());
 
@@ -166,24 +141,7 @@ public class MasterServer {
     public void shutdown() {
         shuttingDown = true;
 
-        shutdownGeyserProxy();
-
         generalThreadPool.shutdown();
-        storageManager.closeStorage();
         System.exit(0);
-    }
-
-    public void createGeyserProxy() {
-        if (geyserProxy == null) {
-            this.geyserProxy = new GeyserProxyBootstrap();
-            geyserProxy.onEnable();
-        }
-    }
-
-    public void shutdownGeyserProxy() {
-        if (geyserProxy != null) {
-            geyserProxy.onDisable();
-            geyserProxy = null;
-        }
     }
 }

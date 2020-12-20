@@ -34,27 +34,19 @@ import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nukkitx.network.util.DisconnectReason;
 import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
 import com.nukkitx.protocol.bedrock.BedrockServerSession;
-import com.nukkitx.protocol.bedrock.data.AttributeData;
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.*;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
 import org.geysermc.common.window.FormWindow;
 import org.geysermc.common.window.response.CustomFormResponse;
-import org.geysermc.common.window.response.SimpleFormResponse;
 import org.geysermc.connect.ui.FormID;
 import org.geysermc.connect.ui.UIHandler;
 import org.geysermc.connect.utils.Player;
-import org.geysermc.connector.entity.attribute.AttributeType;
 import org.geysermc.connector.network.BedrockProtocol;
 import org.geysermc.connector.network.session.auth.BedrockClientData;
-import org.geysermc.connector.utils.AttributeUtils;
-import org.geysermc.connector.utils.LanguageUtils;
 
 import java.io.IOException;
 import java.security.interfaces.ECPublicKey;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class PacketHandler implements BedrockPacketHandler {
 
@@ -75,11 +67,7 @@ public class PacketHandler implements BedrockPacketHandler {
     public void disconnect(DisconnectReason reason) {
         if (player != null) {
             masterServer.getLogger().info(player.getDisplayName() + " has disconnected from the master server (" + reason + ")");
-            masterServer.getStorageManager().saveServers(player);
-
-            if (player.getCurrentServer() != null && player.getCurrentServer().isBedrock()) {
-                masterServer.getPlayers().remove(player);
-            }
+            masterServer.getPlayers().remove(player);
         }
     }
 
@@ -203,7 +191,7 @@ public class PacketHandler implements BedrockPacketHandler {
     public boolean handle(SetLocalPlayerAsInitializedPacket packet) {
         masterServer.getLogger().debug("Player initialized: " + player.getDisplayName());
 
-        player.sendWindow(FormID.MAIN, UIHandler.getServerList(player.getServers()));;
+        player.sendWindow(FormID.MAIN, UIHandler.getMessageWindow());
 
         return false;
     }
@@ -226,31 +214,7 @@ public class PacketHandler implements BedrockPacketHandler {
             // Send the response to the correct response function
             switch (id) {
                 case MAIN:
-                    UIHandler.handleServerListResponse(player, (SimpleFormResponse) window.getResponse());
-                    break;
-
-                case DIRECT_CONNECT:
-                    UIHandler.handleDirectConnectResponse(player, (CustomFormResponse) window.getResponse());
-                    break;
-
-                case EDIT_SERVERS:
-                    UIHandler.handleEditServerListResponse(player, (SimpleFormResponse) window.getResponse());
-                    break;
-
-                case ADD_SERVER:
-                    UIHandler.handleAddServerResponse(player, (CustomFormResponse) window.getResponse());
-                    break;
-
-                case SERVER_OPTIONS:
-                    UIHandler.handleServerOptionsResponse(player, (SimpleFormResponse) window.getResponse());
-                    break;
-
-                case REMOVE_SERVER:
-                    UIHandler.handleServerRemoveResponse(player, (SimpleFormResponse) window.getResponse());
-                    break;
-
-                case EDIT_SERVER:
-                    UIHandler.handleEditServerResponse(player, (CustomFormResponse) window.getResponse());
+                    UIHandler.handleMessageWindowResponse(player, (CustomFormResponse) window.getResponse());
                     break;
 
                 default:
@@ -260,20 +224,5 @@ public class PacketHandler implements BedrockPacketHandler {
         }
 
         return true;
-    }
-
-    @Override
-    public boolean handle(NetworkStackLatencyPacket packet) {
-        // This is to fix a bug in the client where it doesn't load form images
-        UpdateAttributesPacket updateAttributesPacket = new UpdateAttributesPacket();
-        updateAttributesPacket.setRuntimeEntityId(1);
-        List<AttributeData> attributes = new ArrayList<>();
-        attributes.add(AttributeUtils.getBedrockAttribute(AttributeType.EXPERIENCE_LEVEL.getAttribute(0f)));
-        updateAttributesPacket.setAttributes(attributes);
-
-        // Doesn't work 100% of the time but fixes it most of the time
-        MasterServer.getInstance().getGeneralThreadPool().schedule(() -> session.sendPacket(updateAttributesPacket), 500, TimeUnit.MILLISECONDS);
-
-        return false;
     }
 }
